@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "./supabaseClient.js";
 import "./App.css";
@@ -13,44 +12,48 @@ function App() {
   const [produtoAtual, setProdutoAtual] = useState(null);
   const [status, setStatus] = useState(null);
   const [historico, setHistorico] = useState([]);
-  const [menuAtivo, setMenuAtivo] = useState("validador");
+  const [menuAtivo, setMenuAtivo] = useState("validador"); // validador | historico | consulta
 
   const timerRef = useRef(null);
 
-  // Login simples
+  // --- LOGIN ---
   const fazerLogin = () => {
     if (usuario && senha) setLogado(true);
   };
 
-  // Buscar produto no Supabase
-  const buscarProduto = async () => {
-    limparTimer();
-    const codigoLimpo = codigoProduto.replace(/\s/g, "").toUpperCase();
+  const sair = () => {
+    setLogado(false);
+    setUsuario("");
+    setSenha("");
+    setProdutoAtual(null);
+    setStatus(null);
+    setMenuAtivo("validador");
+  };
 
+  // --- VALIDADOR ---
+  const buscarProdutoValidador = async () => {
+    limparTimer();
     const { data, error } = await supabase
       .from("CODIGOS")
       .select("*")
       .or(
-        `codigo_barras_fornecedor.ilike.%${codigoLimpo}%,codigo_barras.ilike.%${codigoLimpo}%,codigo_barras_filial.ilike.%${codigoLimpo}%,codigo_barras_interno.ilike.%${codigoLimpo}%`
+        `codigo_barras_fornecedor.eq.${codigoProduto},codigo_barras.eq.${codigoProduto},codigo_barras_filial.eq.${codigoProduto},codigo_barras_interno.eq.${codigoProduto}`
       )
       .limit(1);
 
     if (error) {
-      console.error("Erro ao buscar produto:", error);
+      console.error(error);
       setStatus("error");
-    } else if (data.length === 0) {
-      console.log("Produto não encontrado");
-      setStatus("error");
-    } else {
-      console.log("Produto encontrado:", data[0]);
+    } else if (data.length > 0) {
       setProdutoAtual(data[0]);
       setStatus(null);
+    } else {
+      setStatus("error");
+      iniciarTimer();
     }
-
     setCodigoProduto("");
   };
 
-  // Validar local
   const validarLocal = () => {
     if (!produtoAtual) return;
     const correto = codigoLocal === produtoAtual.codigo_local;
@@ -69,6 +72,39 @@ function App() {
     iniciarTimer();
   };
 
+  // --- CONSULTA DE PRODUTOS ---
+  const buscarProdutoConsulta = async () => {
+    limparTimer();
+    const { data, error } = await supabase
+      .from("CODIGOS")
+      .select("*")
+      .or(
+        `codigo_barras_fornecedor.eq.${codigoProduto},codigo_barras.eq.${codigoProduto},codigo_barras_filial.eq.${codigoProduto},codigo_barras_interno.eq.${codigoProduto}`
+      )
+      .limit(1);
+
+    if (error) {
+      console.error(error);
+      alert("Erro na consulta!");
+      setProdutoAtual(null);
+    } else if (data.length > 0) {
+      setProdutoAtual(data[0]);
+      iniciarConsultaTimer(); // limpa após 12 segundos
+    } else {
+      setProdutoAtual(null);
+      alert("Produto não encontrado!");
+    }
+    setCodigoProduto("");
+  };
+
+  const iniciarConsultaTimer = () => {
+    limparTimer();
+    timerRef.current = setTimeout(() => {
+      setProdutoAtual(null);
+    }, 12000);
+  };
+
+  // --- TIMER PARA VALIDADOR ---
   const iniciarTimer = () => {
     limparTimer();
     timerRef.current = setTimeout(() => reiniciar(), 12000);
@@ -85,6 +121,7 @@ function App() {
     setMenuAtivo("validador");
   };
 
+  // --- RENDER LOGIN ---
   if (!logado) {
     return (
       <div className="login-container">
@@ -109,25 +146,46 @@ function App() {
     );
   }
 
+  // --- RENDER APP ---
   return (
     <div className="layout">
       {/* Sidebar */}
       <div className="sidebar">
         <h2>{usuario}</h2>
+
+        {/* Menu para todos */}
+        <button
+          className="menu-btn"
+          onClick={() => setMenuAtivo("validador")}
+        >
+          Validador
+        </button>
+        <button
+          className="menu-btn"
+          onClick={() => setMenuAtivo("consulta")}
+        >
+          Consulta de Produtos
+        </button>
+
+        {/* Menu extra apenas para admin */}
         {usuario === "admin" && (
-          <>
-            <button className="menu-btn" onClick={() => setMenuAtivo("validador")}>
-              Validador
-            </button>
-            <button className="menu-btn" onClick={() => setMenuAtivo("historico")}>
-              Histórico
-            </button>
-          </>
+          <button
+            className="menu-btn"
+            onClick={() => setMenuAtivo("historico")}
+          >
+            Histórico
+          </button>
         )}
+
+        {/* Botão de sair sempre */}
+        <button className="menu-btn" onClick={sair}>
+          Sair
+        </button>
       </div>
 
       {/* Conteúdo central */}
       <div className="main">
+        {/* VALIDADOR */}
         {menuAtivo === "validador" && (
           <div className="card">
             <h1>Validação</h1>
@@ -139,7 +197,9 @@ function App() {
                   type="text"
                   value={codigoProduto}
                   onChange={(e) => setCodigoProduto(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && buscarProduto()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && buscarProdutoValidador()
+                  }
                   autoFocus
                 />
               </>
@@ -162,11 +222,40 @@ function App() {
               </>
             )}
 
-            {status === "success" && <div className="status success">✔ LOCAL CORRETO</div>}
-            {status === "error" && <div className="status error">✖ LOCAL INCORRETO</div>}
+            {status === "success" && (
+              <div className="status success">✔ LOCAL CORRETO</div>
+            )}
+            {status === "error" && (
+              <div className="status error">✖ LOCAL INCORRETO</div>
+            )}
           </div>
         )}
 
+        {/* CONSULTA DE PRODUTOS */}
+        {menuAtivo === "consulta" && (
+          <div className="card">
+            <h1>Consulta de Produtos</h1>
+            <label>Código Produto</label>
+            <input
+              type="text"
+              value={codigoProduto}
+              onChange={(e) => setCodigoProduto(e.target.value)}
+              onKeyDown={(e) =>
+                e.key === "Enter" && buscarProdutoConsulta()
+              }
+              autoFocus
+            />
+            {produtoAtual && (
+              <>
+                <h2>{produtoAtual.descricao}</h2>
+                <p>Local:</p>
+                <h1 className="local-big">{produtoAtual.codigo_local}</h1>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* HISTÓRICO */}
         {menuAtivo === "historico" && usuario === "admin" && (
           <div className="card">
             <h1>Histórico de Validações</h1>
