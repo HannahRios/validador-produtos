@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "./supabaseClient.js";
 import "./App.css";
+import logo from "./assets/logo.png";
 
 function App() {
   const [usuario, setUsuario] = useState("");
@@ -12,7 +13,8 @@ function App() {
   const [produtoAtual, setProdutoAtual] = useState(null);
   const [status, setStatus] = useState(null);
   const [historico, setHistorico] = useState([]);
-  const [menuAtivo, setMenuAtivo] = useState("validador"); // validador | historico | consulta
+  const [menuAtivo, setMenuAtivo] = useState("validador");
+  const [menuAberto, setMenuAberto] = useState(window.innerWidth > 768);
 
   const timerRef = useRef(null);
 
@@ -33,6 +35,7 @@ function App() {
   // --- VALIDADOR ---
   const buscarProdutoValidador = async () => {
     limparTimer();
+
     const { data, error } = await supabase
       .from("CODIGOS")
       .select("*")
@@ -51,15 +54,18 @@ function App() {
       setStatus("error");
       iniciarTimer();
     }
+
     setCodigoProduto("");
   };
 
   const validarLocal = () => {
     if (!produtoAtual) return;
+
     const correto = codigoLocal === produtoAtual.codigo_local;
     setStatus(correto ? "success" : "error");
 
     const novoRegistro = {
+      usuario: usuario,
       produto: produtoAtual.descricao,
       localEsperado: produtoAtual.codigo_local,
       localLido: codigoLocal,
@@ -72,9 +78,10 @@ function App() {
     iniciarTimer();
   };
 
-  // --- CONSULTA DE PRODUTOS ---
+  // --- CONSULTA ---
   const buscarProdutoConsulta = async () => {
     limparTimer();
+
     const { data, error } = await supabase
       .from("CODIGOS")
       .select("*")
@@ -89,11 +96,12 @@ function App() {
       setProdutoAtual(null);
     } else if (data.length > 0) {
       setProdutoAtual(data[0]);
-      iniciarConsultaTimer(); // limpa após 12 segundos
+      iniciarConsultaTimer();
     } else {
       setProdutoAtual(null);
       alert("Produto não encontrado!");
     }
+
     setCodigoProduto("");
   };
 
@@ -104,7 +112,6 @@ function App() {
     }, 12000);
   };
 
-  // --- TIMER PARA VALIDADOR ---
   const iniciarTimer = () => {
     limparTimer();
     timerRef.current = setTimeout(() => reiniciar(), 12000);
@@ -121,7 +128,7 @@ function App() {
     setMenuAtivo("validador");
   };
 
-  // --- RENDER LOGIN ---
+  // --- LOGIN ---
   if (!logado) {
     return (
       <div className="login-container">
@@ -146,44 +153,59 @@ function App() {
     );
   }
 
-  // --- RENDER APP ---
-  return (
-    <div className="layout">
-      {/* Sidebar */}
-      <div className="sidebar">
-        <h2>{usuario}</h2>
+  // --- APP ---
+return (
+  <div className="layout">
 
-        {/* Menu para todos */}
+    {/* BOTÃO MENU MOBILE */}
+    <button
+      className="toggle-menu"
+      onClick={() => setMenuAberto(!menuAberto)}
+    >
+      ☰
+    </button>
+
+    <div className={`sidebar ${menuAberto ? "open" : "closed"}`}>
+
+      {/* LOGO ADICIONADO */}
+      <img
+        src={logo}
+        alt="Logo empresa"
+        className="logo"
+        onClick={() => setMenuAtivo("validador")}
+      />
+
+      <h2>{usuario}</h2>
+
+      <button
+        className="menu-btn"
+        onClick={() => setMenuAtivo("validador")}
+      >
+        Validador
+      </button>
+
+      <button
+        className="menu-btn"
+        onClick={() => setMenuAtivo("consulta")}
+      >
+        Consulta de Produtos
+      </button>
+
+      {usuario === "admin" && (
         <button
           className="menu-btn"
-          onClick={() => setMenuAtivo("validador")}
+          onClick={() => setMenuAtivo("historico")}
         >
-          Validador
+          Histórico
         </button>
-        <button
-          className="menu-btn"
-          onClick={() => setMenuAtivo("consulta")}
-        >
-          Consulta de Produtos
-        </button>
+      )}
 
-        {/* Menu extra apenas para admin */}
-        {usuario === "admin" && (
-          <button
-            className="menu-btn"
-            onClick={() => setMenuAtivo("historico")}
-          >
-            Histórico
-          </button>
-        )}
+      <button className="menu-btn" onClick={sair}>
+        Sair
+      </button>
 
-        {/* Botão de sair sempre */}
-        <button className="menu-btn" onClick={sair}>
-          Sair
-        </button>
-      </div>
+    </div>
 
-      {/* Conteúdo central */}
       <div className="main">
         {/* VALIDADOR */}
         {menuAtivo === "validador" && (
@@ -209,29 +231,38 @@ function App() {
               <>
                 <h2>{produtoAtual.descricao}</h2>
                 <p>Local correto:</p>
-                <h1 className="local-big">{produtoAtual.codigo_local}</h1>
+                <h1 className="local-big">
+                  {produtoAtual.codigo_local}
+                </h1>
 
                 <label>Código Local</label>
                 <input
                   type="text"
                   value={codigoLocal}
                   onChange={(e) => setCodigoLocal(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && validarLocal()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && validarLocal()
+                  }
                   autoFocus
                 />
               </>
             )}
 
             {status === "success" && (
-              <div className="status success">✔ LOCAL CORRETO</div>
+              <div className="status success">
+                ✔ LOCAL CORRETO
+              </div>
             )}
+
             {status === "error" && (
-              <div className="status error">✖ LOCAL INCORRETO</div>
+              <div className="status error">
+                ✖ LOCAL INCORRETO
+              </div>
             )}
           </div>
         )}
 
-        {/* CONSULTA DE PRODUTOS */}
+        {/* CONSULTA */}
         {menuAtivo === "consulta" && (
           <div className="card">
             <h1>Consulta de Produtos</h1>
@@ -245,11 +276,14 @@ function App() {
               }
               autoFocus
             />
+
             {produtoAtual && (
               <>
                 <h2>{produtoAtual.descricao}</h2>
                 <p>Local:</p>
-                <h1 className="local-big">{produtoAtual.codigo_local}</h1>
+                <h1 className="local-big">
+                  {produtoAtual.codigo_local}
+                </h1>
               </>
             )}
           </div>
@@ -262,6 +296,7 @@ function App() {
             <table className="table">
               <thead>
                 <tr>
+                  <th>Usuário</th>
                   <th>Produto</th>
                   <th>Local Esperado</th>
                   <th>Local Lido</th>
@@ -272,6 +307,7 @@ function App() {
               <tbody>
                 {historico.map((item, index) => (
                   <tr key={index}>
+                    <td>{item.usuario}</td>
                     <td>{item.produto}</td>
                     <td>{item.localEsperado}</td>
                     <td>{item.localLido}</td>
