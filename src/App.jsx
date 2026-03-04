@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { supabase } from "./supabaseClient.js";
 import "./App.css";
 import logo from "./assets/logo.png";
+import somErro from "./assets/erro.mp3";
 
 function App() {
   const [usuario, setUsuario] = useState("");
@@ -17,6 +18,7 @@ function App() {
   const [menuAberto, setMenuAberto] = useState(window.innerWidth > 768);
 
   const timerRef = useRef(null);
+  const audioErro = useRef(new Audio(somErro));
 
   // --- LOGIN ---
   const fazerLogin = () => {
@@ -52,6 +54,7 @@ function App() {
       setStatus(null);
     } else {
       setStatus("error");
+      audioErro.current.play();
       iniciarTimer();
     }
 
@@ -63,6 +66,10 @@ function App() {
 
     const correto = codigoLocal === produtoAtual.codigo_local;
     setStatus(correto ? "success" : "error");
+
+    if (!correto) {
+      audioErro.current.play();
+    }
 
     const novoRegistro = {
       usuario: usuario,
@@ -109,12 +116,12 @@ function App() {
     limparTimer();
     timerRef.current = setTimeout(() => {
       setProdutoAtual(null);
-    }, 12000);
+    }, 5000);
   };
 
   const iniciarTimer = () => {
     limparTimer();
-    timerRef.current = setTimeout(() => reiniciar(), 12000);
+    timerRef.current = setTimeout(() => reiniciar(), 5000);
   };
 
   const limparTimer = () => {
@@ -153,63 +160,52 @@ function App() {
     );
   }
 
-  // --- APP ---
-return (
-  <div className="layout">
-
-    {/* BOTÃO MENU MOBILE */}
-    <button
-      className="toggle-menu"
-      onClick={() => setMenuAberto(!menuAberto)}
+  return (
+    <div
+       className="layout"
     >
-      ☰
-    </button>
-
-    <div className={`sidebar ${menuAberto ? "open" : "closed"}`}>
-
-      {/* LOGO ADICIONADO */}
-      <img
-        src={logo}
-        alt="Logo empresa"
-        className="logo"
-        onClick={() => setMenuAtivo("validador")}
-      />
-
-      <h2>{usuario}</h2>
-
       <button
-        className="menu-btn"
-        onClick={() => setMenuAtivo("validador")}
+        className="toggle-menu"
+        onClick={() => setMenuAberto(!menuAberto)}
       >
-        Validador
+        ☰
       </button>
 
-      <button
-        className="menu-btn"
-        onClick={() => setMenuAtivo("consulta")}
-      >
-        Consulta de Produtos
-      </button>
+      <div className={`sidebar ${menuAberto ? "open" : "closed"}`}>
+        <img
+          src={logo}
+          alt="Logo empresa"
+          className="logo"
+          onClick={() => setMenuAtivo("validador")}
+        />
 
-      {usuario === "admin" && (
-        <button
-          className="menu-btn"
-          onClick={() => setMenuAtivo("historico")}
-        >
-          Histórico
+        <h2>{usuario}</h2>
+
+        <button className="menu-btn" onClick={() => setMenuAtivo("validador")}>
+          Validador
         </button>
-      )}
 
-      <button className="menu-btn" onClick={sair}>
-        Sair
-      </button>
+        <button className="menu-btn" onClick={() => setMenuAtivo("consulta")}>
+          Consulta de Produtos
+        </button>
 
-    </div>
+        {usuario === "admin" && (
+          <button
+            className="menu-btn"
+            onClick={() => setMenuAtivo("historico")}
+          >
+            Histórico
+          </button>
+        )}
+
+        <button className="menu-btn" onClick={sair}>
+          Sair
+        </button>
+      </div>
 
       <div className="main">
-        {/* VALIDADOR */}
         {menuAtivo === "validador" && (
-          <div className="card">
+          <div className={`card ${status === "success" ? "sucesso" : status === "error" ? "erro" : ""}`}>
             <h1>Validação</h1>
 
             {!produtoAtual && (
@@ -259,64 +255,6 @@ return (
                 ✖ LOCAL INCORRETO
               </div>
             )}
-          </div>
-        )}
-
-        {/* CONSULTA */}
-        {menuAtivo === "consulta" && (
-          <div className="card">
-            <h1>Consulta de Produtos</h1>
-            <label>Código Produto</label>
-            <input
-              type="text"
-              value={codigoProduto}
-              onChange={(e) => setCodigoProduto(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && buscarProdutoConsulta()
-              }
-              autoFocus
-            />
-
-            {produtoAtual && (
-              <>
-                <h2>{produtoAtual.descricao}</h2>
-                <p>Local:</p>
-                <h1 className="local-big">
-                  {produtoAtual.codigo_local}
-                </h1>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* HISTÓRICO */}
-        {menuAtivo === "historico" && usuario === "admin" && (
-          <div className="card">
-            <h1>Histórico de Validações</h1>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Usuário</th>
-                  <th>Produto</th>
-                  <th>Local Esperado</th>
-                  <th>Local Lido</th>
-                  <th>Status</th>
-                  <th>Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historico.map((item, index) => (
-                  <tr key={index}>
-                    <td>{item.usuario}</td>
-                    <td>{item.produto}</td>
-                    <td>{item.localEsperado}</td>
-                    <td>{item.localLido}</td>
-                    <td>{item.status}</td>
-                    <td>{item.data}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@
 .layout {
   display: flex;
   height: 100vh;
-  background-color: #ffffff;
+  background-color: #ffffff63;
   font-family: Arial, sans-serif;
   color: #333333;
   justify-content: center;
@@ -114,13 +114,13 @@ button:hover {
 
 /* Status */
 .status.success {
-  color: green;
+  color: rgb(255, 255, 255);
   font-weight: bold;
   margin-top: 15px;
 }
 
 .status.error {
-  color: red;
+  color: rgb(255, 255, 255);
   font-weight: bold;
   margin-top: 15px;
 }
@@ -194,4 +194,26 @@ button:hover {
   .main {
     margin-left: 0;
   }
+}
+
+/* ===== STATUS VISUAL DO CARD ===== */
+
+.card {
+  transition: all 0.25s ease;
+}
+
+/* Sucesso */
+.card.sucesso {
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(0,0,0,0.25);
+}
+
+/* Erro */
+.card.erro {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(0,0,0,0.25);
 }
