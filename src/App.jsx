@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "./supabaseClient.js";
 import "./App.css";
 import logo from "./assets/logo.png";
@@ -14,6 +14,11 @@ function App() {
 
   const timerRef = useRef(null);
   const audioErro = useRef(new Audio(somErro));
+
+  // NOVOS REFS
+  const sidebarRef = useRef(null);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   // =============================
   // VALIDADOR
@@ -91,7 +96,7 @@ function App() {
   };
 
   // =============================
-  // CONTROLE DE TIMER
+  // TIMER
   // =============================
   const iniciarTimer = () => {
     limparTimer();
@@ -109,10 +114,72 @@ function App() {
   };
 
   // =============================
-  // LAYOUT PRINCIPAL
+  // FECHAR MENU AO CLICAR FORA
+  // =============================
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        window.innerWidth < 768 &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target)
+      ) {
+        setMenuAberto(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // =============================
+  // RESIZE AUTOMÁTICO
+  // =============================
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMenuAberto(true);
+      } else {
+        setMenuAberto(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () =>
+      window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // =============================
+  // SWIPE MOBILE
+  // =============================
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.changedTouches[0].screenX;
+  };
+
+  const handleTouchEnd = (e) => {
+    touchEndX.current = e.changedTouches[0].screenX;
+
+    const distance = touchEndX.current - touchStartX.current;
+
+    if (distance > 50) {
+      setMenuAberto(true);
+    }
+
+    if (distance < -50) {
+      setMenuAberto(false);
+    }
+  };
+
+  // =============================
+  // LAYOUT
   // =============================
   return (
-    <div className="layout">
+    <div
+      className="layout"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <button
         className="toggle-menu"
         onClick={() => setMenuAberto(!menuAberto)}
@@ -120,31 +187,50 @@ function App() {
         ☰
       </button>
 
-      <div className={`sidebar ${menuAberto ? "open" : "closed"}`}>
+      {/* OVERLAY MOBILE */}
+      {menuAberto && window.innerWidth < 768 && (
+        <div
+          className="overlay"
+          onClick={() => setMenuAberto(false)}
+        />
+      )}
+
+      <div
+        ref={sidebarRef}
+        className={`sidebar ${menuAberto ? "open" : "closed"}`}
+      >
         <img
           src={logo}
           alt="Logo empresa"
           className="logo"
-          onClick={() => setMenuAtivo("validador")}
+          onClick={() => {
+            setMenuAtivo("validador");
+            if (window.innerWidth < 768) setMenuAberto(false);
+          }}
         />
 
         <button
           className="menu-btn"
-          onClick={() => setMenuAtivo("validador")}
+          onClick={() => {
+            setMenuAtivo("validador");
+            if (window.innerWidth < 768) setMenuAberto(false);
+          }}
         >
           Validador
         </button>
 
         <button
           className="menu-btn"
-          onClick={() => setMenuAtivo("consulta")}
+          onClick={() => {
+            setMenuAtivo("consulta");
+            if (window.innerWidth < 768) setMenuAberto(false);
+          }}
         >
           Consulta de Produtos
         </button>
       </div>
 
       <div className="main">
-        {/* ================= VALIDADOR ================= */}
         {menuAtivo === "validador" && (
           <div
             className={`card ${
@@ -163,9 +249,12 @@ function App() {
                 <input
                   type="text"
                   value={codigoProduto}
-                  onChange={(e) => setCodigoProduto(e.target.value)}
+                  onChange={(e) =>
+                    setCodigoProduto(e.target.value)
+                  }
                   onKeyDown={(e) =>
-                    e.key === "Enter" && buscarProdutoValidador()
+                    e.key === "Enter" &&
+                    buscarProdutoValidador()
                   }
                   autoFocus
                 />
@@ -176,15 +265,19 @@ function App() {
               <>
                 <h2>{produtoAtual.descricao}</h2>
                 <p>Local correto:</p>
+
                 <h1 className="local-big">
                   {produtoAtual.local}
                 </h1>
 
                 <label>Código Local</label>
+
                 <input
                   type="text"
                   value={codigoLocal}
-                  onChange={(e) => setCodigoLocal(e.target.value)}
+                  onChange={(e) =>
+                    setCodigoLocal(e.target.value)
+                  }
                   onKeyDown={(e) =>
                     e.key === "Enter" && validarLocal()
                   }
@@ -207,7 +300,6 @@ function App() {
           </div>
         )}
 
-        {/* ================= CONSULTA ================= */}
         {menuAtivo === "consulta" && (
           <div className="card">
             <h1>Consulta de Produto</h1>
@@ -215,6 +307,7 @@ function App() {
             {!produtoAtual && (
               <>
                 <label>Código Produto</label>
+
                 <input
                   type="text"
                   value={codigoProduto}
@@ -222,7 +315,8 @@ function App() {
                     setCodigoProduto(e.target.value)
                   }
                   onKeyDown={(e) =>
-                    e.key === "Enter" && buscarProdutoConsulta()
+                    e.key === "Enter" &&
+                    buscarProdutoConsulta()
                   }
                   autoFocus
                 />
@@ -232,10 +326,13 @@ function App() {
             {produtoAtual && (
               <>
                 <h2>{produtoAtual.descricao}</h2>
-                <h2>
-                  <strong>Local:</strong>{" "}
-                  {produtoAtual.codigo_local}
-                </h2>
+
+                <p>
+                  Local:
+                  <h1 className="local-big">
+                    {produtoAtual.codigo_local}
+                  </h1>
+                </p>
 
                 <button
                   className="btn-guardado"
