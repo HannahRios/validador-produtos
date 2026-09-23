@@ -52,7 +52,7 @@ function App() {
   const validarLocal = () => {
     if (!produtoAtual) return;
 
-    const correto = codigoLocal === produtoAtual.descricao_do_grupo;
+    const correto = codigoLocal === produtoAtual.local;
     setStatus(correto ? "success" : "error");
 
     if (!correto) {
@@ -264,7 +264,16 @@ function App() {
             {produtoAtual && status === null && (
               <>
                 <h2>{produtoAtual.descricao}</h2>
-                <p>Local correto:</p>
+                <h2>
+                  <strong>Código:</strong>{" "}
+                  {produtoAtual.codigo_do_produto}
+                </h2>
+                <h2>
+                  <strong>QTD:</strong>{" "}
+                  {produtoAtual.descricao_do_grupo}
+                </h2>
+
+                <p>Local Correto:</p>
 
                 <h1 className="local-big">
                   {produtoAtual.local}
@@ -326,11 +335,19 @@ function App() {
             {produtoAtual && (
               <>
                 <h2>{produtoAtual.descricao}</h2>
+                <h2>
+                   <strong>Código:</strong>{" "}
+                   {produtoAtual.codigo_do_produto}
+                </h2>
+                <h2>
+                  <strong>QTD:</strong>{" "}
+                  {produtoAtual.descricao_do_grupo}
+                </h2>
 
                 <p>
                   Local:
                   <h1 className="local-big">
-                    {produtoAtual.codigo_local}
+                    {produtoAtual.local}
                   </h1>
                 </p>
 
