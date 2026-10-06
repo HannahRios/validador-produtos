@@ -3,6 +3,10 @@ import { supabase } from "./supabaseClient.js";
 import "./App.css";
 import logo from "./assets/logo.png";
 import somErro from "./assets/erro.mp3";
+import Reposicao from "./Reposicao.jsx";
+import Acompanhamento from "./Acompanhamento.jsx";
+import HistoricoProduto from "./HistoricoProduto.jsx";
+import Admin from "./Admin.jsx";
 
 function App() {
   const [codigoProduto, setCodigoProduto] = useState("");
@@ -15,7 +19,6 @@ function App() {
   const timerRef = useRef(null);
   const audioErro = useRef(new Audio(somErro));
 
-  // NOVOS REFS
   const sidebarRef = useRef(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -100,11 +103,14 @@ function App() {
   // =============================
   const iniciarTimer = () => {
     limparTimer();
+
     timerRef.current = setTimeout(() => reiniciar(), 2000);
   };
 
   const limparTimer = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
   };
 
   const reiniciar = () => {
@@ -128,6 +134,7 @@ function App() {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () =>
       document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -195,6 +202,7 @@ function App() {
         />
       )}
 
+      {/* SIDEBAR */}
       <div
         ref={sidebarRef}
         className={`sidebar ${menuAberto ? "open" : "closed"}`}
@@ -205,7 +213,10 @@ function App() {
           className="logo"
           onClick={() => {
             setMenuAtivo("validador");
-            if (window.innerWidth < 768) setMenuAberto(false);
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
           }}
         />
 
@@ -213,7 +224,10 @@ function App() {
           className="menu-btn"
           onClick={() => {
             setMenuAtivo("validador");
-            if (window.innerWidth < 768) setMenuAberto(false);
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
           }}
         >
           Validador
@@ -223,14 +237,78 @@ function App() {
           className="menu-btn"
           onClick={() => {
             setMenuAtivo("consulta");
-            if (window.innerWidth < 768) setMenuAberto(false);
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
           }}
         >
           Consulta de Produtos
         </button>
+
+        <button
+          className="menu-btn"
+          onClick={() => {
+            setMenuAtivo("reposicao");
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
+          }}
+        >
+          Reposição
+        </button>
+                <button
+          className="menu-btn"
+          onClick={() => {
+            setMenuAtivo("acompanhamento");
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
+          }}
+        >
+          Acompanhamento
+        </button>
+                <button
+          className="menu-btn"
+          onClick={() => {
+            setMenuAtivo("historico");
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
+          }}
+        >
+          Histórico do Produto
+        </button>
+                <button
+          className="menu-btn"
+          onClick={() => {
+            setMenuAtivo("admin");
+
+            if (window.innerWidth < 768) {
+              setMenuAberto(false);
+            }
+          }}
+        >
+          Admin
+        </button>
       </div>
 
       <div className="main">
+
+        {/* =============================
+            REPOSIÇÃO
+        ============================= */}
+        {menuAtivo === "reposicao" && <Reposicao />}
+        {menuAtivo === "acompanhamento" && <Acompanhamento />}
+        {menuAtivo === "historico" && <HistoricoProduto />}
+        {menuAtivo === "admin" && <Admin />}
+
+        {/* =============================
+            VALIDADOR
+        ============================= */}
         {menuAtivo === "validador" && (
           <div
             className={`card ${
@@ -245,7 +323,8 @@ function App() {
 
             {!produtoAtual && (
               <>
-                <label>Código Produto</label>
+                
+
                 <input
                   type="text"
                   value={codigoProduto}
@@ -256,6 +335,7 @@ function App() {
                     e.key === "Enter" &&
                     buscarProdutoValidador()
                   }
+                  placeholder="BIPE O CÓDIGO DO PRODUTO"
                   autoFocus
                 />
               </>
@@ -264,10 +344,12 @@ function App() {
             {produtoAtual && status === null && (
               <>
                 <h2>{produtoAtual.descricao}</h2>
+
                 <h2>
                   <strong>Código:</strong>{" "}
                   {produtoAtual.codigo_do_produto}
                 </h2>
+
                 <h2>
                   <strong>QTD:</strong>{" "}
                   {produtoAtual.descricao_do_grupo}
@@ -288,7 +370,8 @@ function App() {
                     setCodigoLocal(e.target.value)
                   }
                   onKeyDown={(e) =>
-                    e.key === "Enter" && validarLocal()
+                    e.key === "Enter" &&
+                    validarLocal()
                   }
                   autoFocus
                 />
@@ -309,13 +392,17 @@ function App() {
           </div>
         )}
 
+        {/* =============================
+            CONSULTA
+        ============================= */}
         {menuAtivo === "consulta" && (
           <div className="card">
+
             <h1>Consulta de Produto</h1>
 
             {!produtoAtual && (
               <>
-                <label>Código Produto</label>
+                
 
                 <input
                   type="text"
@@ -327,6 +414,7 @@ function App() {
                     e.key === "Enter" &&
                     buscarProdutoConsulta()
                   }
+                  placeholder="BIPE O CÓDIGO DO PRODUTO"
                   autoFocus
                 />
               </>
@@ -335,21 +423,22 @@ function App() {
             {produtoAtual && (
               <>
                 <h2>{produtoAtual.descricao}</h2>
+
                 <h2>
-                   <strong>Código:</strong>{" "}
-                   {produtoAtual.codigo_do_produto}
+                  <strong>Código:</strong>{" "}
+                  {produtoAtual.codigo_do_produto}
                 </h2>
+
                 <h2>
                   <strong>QTD:</strong>{" "}
                   {produtoAtual.descricao_do_grupo}
                 </h2>
 
-                <p>
-                  Local:
-                  <h1 className="local-big">
-                    {produtoAtual.local}
-                  </h1>
-                </p>
+                <p>Local:</p>
+
+                <h1 className="local-big">
+                  {produtoAtual.local}
+                </h1>
 
                 <button
                   className="btn-guardado"
@@ -359,8 +448,10 @@ function App() {
                 </button>
               </>
             )}
+
           </div>
         )}
+
       </div>
     </div>
   );
